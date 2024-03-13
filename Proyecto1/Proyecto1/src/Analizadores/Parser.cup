@@ -1,0 +1,139 @@
+package Analizadores;
+
+import main.*;
+import java_cup.runtime.*;
+import java.util.LinkedList;
+class Parser;
+
+
+//------> Codigo para el parser
+//------> Declaracion de variables, funciones y funciones de error
+
+parser code 
+{:
+    public String resultado = ""; 
+
+    public void syntax_error(Symbol s)
+    {
+            System.err.println("Error Sintactico: "+ s.value + " - Fila: " + s.right + " - Columna: " + s.left + ". Recuperado" );
+            cosaspublicas.errores.add(new token("Sintactico","No se esperaba"+s.value,s.right,s.left)
+    }
+
+    public void unrecovered_syntax_error(Symbol s) throws java.lang.Exception
+    {
+            System.err.println("Error Sintactico: "+ s.value + " - Fila: " + s.right + " - Columna: " + s.left + ". Sin recuperacion." );
+           cosaspublicas.errores.add(new token("Sintactico Sin recuperacion","No se esperaba"+s.value,s.right,s.left)
+    }
+
+:}
+
+
+//------> Codigo para las acciones gramaticales (no tocar)
+action code
+{:  :}
+
+
+//------> Declaración de terminales
+terminal RPROGRAM, REND;
+terminal ID, RVAR, RCHAR,RARR,RSUM,RMUL,RDIV,RMOD,RMEDIA,RMEDIANA,RRES,RMODA,RVARIANZA,RMAX,RMIN, RDOUBLE, PYC, CUATROP, DOSP, MENORQUE, MAYORQUE;
+terminal CADENA, DECIMAL,IDARREGLO;
+terminal PARIZQ,PARDER,COMA,IGUAL;
+terminal RCONSOLE, RPRINT, RCOLUMN,CORC,CORA;
+terminal RBAR, RLINE, RPIE, RHISTOGRAM, RTITULO, REJEX, REJEY, RTITULOX, RTITULOY, REXEC, RVALUES, RLABEL;
+
+
+//------> Declaración de no terminales
+non terminal inicio, funciones, aritmeticas, estadisticas, tipod, listainstr, listaexp, declaraciones, declaracionvar, declaracionarr,
+ instruccion, listado, parametros , parametrografica, expresion, tipog,arreglo, graficas, imprimire , imprimira, expresioncadena;
+
+
+//------> PRECEDENCIA
+
+
+//------> Definir Simbolo Inicial
+start with inicio; 
+
+
+// ------------>  Producciones  <------------
+
+inicio ::= RPROGRAM listainstr REND RPROGRAM
+;
+
+listainstr ::= listainstr instruccion
+    | instruccion
+;
+
+instruccion ::= declaraciones
+|imprimira
+|imprimire
+|graficas
+|error REND PYC
+;
+
+declaraciones ::= declaracionvar|declaracionarr
+;
+
+declaracionarr ::= RARR DOSP tipod CUATROP IDARREGLO MENORQUE arreglo REND PYC
+;
+
+arreglo ::= CORA  listaexp CORC
+| IDARREGLO
+;
+
+listaexp ::= listaexp COMA expresion
+| expresion
+;
+
+funciones ::= aritmeticas PARIZQ expresion COMA expresion PARDER 
+ | estadisticas PARIZQ arreglo PARDER
+;
+
+aritmeticas ::= RSUM | RRES | RDIV | RMUL | RMOD
+;
+
+estadisticas ::= RMEDIA | RMEDIANA | RMODA | RVARIANZA | RMAX | RMIN 
+;
+
+declaracionvar ::= RVAR DOSP tipod CUATROP ID MENORQUE expresion REND PYC 
+;
+
+imprimira ::= RCONSOLE CUATROP RCOLUMN IGUAL expresioncadena MAYORQUE arreglo REND PYC
+;
+
+imprimire ::= RCONSOLE CUATROP RPRINT IGUAL listaexp REND PYC
+{: :};
+
+tipod ::= RCHAR|RDOUBLE
+;
+
+expresion ::= funciones
+        | DECIMAL:val {:RESULT = val.toString();:}
+        | CADENA:val  {:RESULT = val.toString();:}      
+        | ID      {::}     
+;
+
+expresioncadena ::= CADENA | ID
+;
+
+parametros ::= parametros parametrografica
+|parametrografica
+;
+
+parametrografica ::= RTITULO CUATROP tipod IGUAL expresioncadena REND PYC
+ | RTITULOX CUATROP tipod IGUAL expresioncadena REND PYC
+ | RTITULOY CUATROP tipod IGUAL expresioncadena REND PYC
+ | REJEX  CUATROP tipod IGUAL arreglo REND PYC
+ |RLABEL CUATROP tipod IGUAL arreglo REND PYC
+ | REJEY CUATROP tipod IGUAL arreglo REND PYC
+ | RVALUES  CUATROP tipod IGUAL arreglo REND PYC
+|error REND PYC
+;
+graficas ::= tipog PARIZQ listado PARDER REND PYC
+;
+
+tipog ::= RBAR | RLINE | RPIE |RHISTOGRAM
+;
+
+listado ::= parametros REXEC tipog REND PYC
+;
+
