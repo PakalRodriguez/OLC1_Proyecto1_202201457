@@ -12,6 +12,7 @@ import main.*;
 %column
 %line
 
+
 %ignorecase
 %function next_token
 
@@ -32,12 +33,13 @@ import main.*;
 // ------> Expresiones Regulares 
 
 entero = [0-9]
-cadena = (\"|"“")[^\"\n]*(\"|"”")
-decimal = [0-9]+(\.[0-9]+)?
+// (\"|"“")[^\"\n]*(\"|"”")
+cadena = (\"|"“")~(\"|"”")
+decimal = -?[0-9]+(\.[0-9]+)?
 comentario = "!"~\n
 comentariom="<""!"~"!"">"
 id = {Letra}({Letra}|{entero}|"_"|"-")*
-Letra  = [a-z]
+Letra  = [a-zA-Z]
 idarreglo = "@"{id}
 
 

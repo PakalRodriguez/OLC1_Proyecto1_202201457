@@ -1,8 +1,10 @@
 package Analizadores;
-
+import java.util.HashMap;
 import main.*;
 import java_cup.runtime.*;
 import java.util.LinkedList;
+import java.util.ArrayList;
+import java.util.*;
 class Parser;
 
 
@@ -12,17 +14,20 @@ class Parser;
 parser code 
 {:
     public String resultado = ""; 
-
+    
+    public static ArrayList<String> nuevo;
+    public static HashMap<String,sim> hashMap = new HashMap<>();
+    public static ArrayList<sim> Esgrafica;
     public void syntax_error(Symbol s)
     {
             System.err.println("Error Sintactico: "+ s.value + " - Fila: " + s.right + " - Columna: " + s.left + ". Recuperado" );
-            cosaspublicas.errores.add(new token("Sintactico","No se esperaba"+s.value,s.right,s.left)
+            cosaspublicas.errores.add(new token("Sintactico","No se esperaba"+s.value,s.right,s.left));
     }
 
     public void unrecovered_syntax_error(Symbol s) throws java.lang.Exception
     {
             System.err.println("Error Sintactico: "+ s.value + " - Fila: " + s.right + " - Columna: " + s.left + ". Sin recuperacion." );
-           cosaspublicas.errores.add(new token("Sintactico Sin recuperacion","No se esperaba"+s.value,s.right,s.left)
+           cosaspublicas.errores.add(new token("Sintactico Sin recuperacion","No se esperaba"+s.value,s.right,s.left));
     }
 
 :}
@@ -44,7 +49,7 @@ terminal RBAR, RLINE, RPIE, RHISTOGRAM, RTITULO, REJEX, REJEY, RTITULOX, RTITULO
 
 //------> Declaración de no terminales
 non terminal inicio, funciones, aritmeticas, estadisticas, tipod, listainstr, listaexp, declaraciones, declaracionvar, declaracionarr,
- instruccion, listado, parametros , parametrografica, expresion, tipog,arreglo, graficas, imprimire , imprimira, expresioncadena;
+ instruccion,  parametros , parametrografica, expresion, tipog,arreglo, graficas, imprimire , imprimira, expresioncadena;
 
 
 //------> PRECEDENCIA
@@ -73,67 +78,410 @@ instruccion ::= declaraciones
 declaraciones ::= declaracionvar|declaracionarr
 ;
 
-declaracionarr ::= RARR DOSP tipod CUATROP IDARREGLO MENORQUE arreglo REND PYC
+declaracionarr ::= RARR DOSP tipod:tip CUATROP IDARREGLO:variable MENORQUE arreglo:arreglocompleto REND PYC {:
+ArrayList<String> nuevo = (ArrayList<String>) arreglocompleto;    
+hashMap.put(variable.toString(),new sim(null,tip.toString(),nuevo));
+Instruccion.imprimirHashMap(hashMap);
+:} 
+    
 ;
 
-arreglo ::= CORA  listaexp CORC
-| IDARREGLO
+arreglo ::= CORA  listaexp:ex CORC 
+{://System.out.println(ex); 
+ ArrayList<String> nuevo = (ArrayList<String>) ex; // Obtener el arreglo de la lista de expresiones
+RESULT = nuevo; // Devolver el arreglo como resultado
+
+:}
+| IDARREGLO:idas
+
+{:
+
+// Obtener el ID del arreglo
+    String id = (String) idas;
+
+    // Buscar el ID en las claves del HashMap
+    sim simbolo = hashMap.get(id);
+
+    if (simbolo != null) {
+        // Si se encuentra el símbolo, retornar el arreglo almacenado en el HashMap
+        RESULT = simbolo.getArreglo();
+    } else {
+        // Si no se encuentra el símbolo, lanzar una excepción o manejar el error de alguna otra manera
+    RESULT = "El arreglo con el ID '" + id + "' no ha sido declarado.";
+    }
+
+:}
 ;
 
-listaexp ::= listaexp COMA expresion
-| expresion
+listaexp ::= listaexp COMA expresion:e {:nuevo.add((String) e);
+ //System.out.println(e);
+ RESULT = nuevo;:}
+| expresion:exr {://System.out.println(exr);
+    nuevo = new ArrayList<>();
+ nuevo.add((String) exr); 
+RESULT = nuevo;:}
 ;
 
-funciones ::= aritmeticas PARIZQ expresion COMA expresion PARDER 
- | estadisticas PARIZQ arreglo PARDER
+funciones ::= aritmeticas:f PARIZQ expresion:e1 COMA expresion:e2 PARDER 
+{: 
+
+    String tipoOperacion = (String) f;
+    double valorExp1 = 0;
+    double valorExp2 = 0;
+    
+    if (e1 != null && e2 != null) {
+        valorExp1 = Double.parseDouble(e1.toString());
+        System.out.println(valorExp1);
+        valorExp2 = Double.parseDouble(e2.toString());
+        System.out.println(valorExp2);
+        switch(tipoOperacion) {
+            case "suma":
+                System.out.println("lA SUMEA ES" + (valorExp1 + valorExp2));
+                RESULT = Double.toString(valorExp1 + valorExp2);
+                break;
+            case "resta":
+                System.out.println(Double.toString(valorExp1 - valorExp2));
+                RESULT = Double.toString(valorExp1 - valorExp2);
+                break;
+            case "multiplicacion":
+                System.out.println("lA MUL ES" + (valorExp1 * valorExp2));
+                RESULT = (valorExp1 * valorExp2);
+                break;
+            case "division":
+                if(valorExp2 != 0){
+                    RESULT = Double.toString(valorExp1 / valorExp2);
+                } else {
+                    RESULT = "Error: División por cero";
+                }
+                break;
+            case "modulo":
+                if(valorExp2 != 0){
+                    double resultado = valorExp1 % valorExp2;
+                    RESULT = Double.toString(resultado);
+                } else {
+                     RESULT = "Error: División por cero";
+                }
+                break;
+            default:
+                RESULT = "Error: Operación no válida";
+        }
+    } else {
+        RESULT = "Error: Expresión incompleta";
+    }
+    
+:}
+ | estadisticas:tipof PARIZQ arreglo:arr PARDER
+{:
+    String operacion = (String) tipof;
+    ArrayList<String> nuevo = (ArrayList<String>) arr; 
+    double resulta=0;
+    if(nuevo!=null){
+         switch(operacion){
+            case "media":
+                resulta = Instruccion.media(nuevo);  
+                RESULT = Double.toString(resulta);
+                break;
+            case "mediana":
+                resulta = Instruccion.mediana(nuevo);
+                RESULT = Double.toString(resulta);
+                break;
+            case "moda":
+                resulta = Instruccion.moda(nuevo);
+                RESULT = Double.toString(resulta);
+                break;
+            case "varianza":
+                 resulta = Instruccion.varianza(nuevo);
+                RESULT = Double.toString(resulta);
+                break;
+            case "max":
+                resulta = Instruccion.maximo(nuevo);
+                RESULT = Double.toString(resulta);
+                break;
+            case "min":
+                resulta = Instruccion.minimo(nuevo);
+                RESULT = Double.toString(resulta);
+                break;
+            default:
+                    RESULT = "Error: Operación no válida";
+        }
+
+    }else{
+            RESULT = "Error: Expresión incompleta";
+    }
+   
+
+:}
 ;
 
-aritmeticas ::= RSUM | RRES | RDIV | RMUL | RMOD
+aritmeticas ::= RSUM {: RESULT = "suma"; :}
+                | RRES {: RESULT = "resta"; :}
+                | RDIV {: RESULT = "division"; :}
+                | RMUL {: RESULT = "multiplicacion"; :}
+                | RMOD {: RESULT = "modulo"; :}
 ;
 
-estadisticas ::= RMEDIA | RMEDIANA | RMODA | RVARIANZA | RMAX | RMIN 
+estadisticas ::= RMEDIA {: RESULT = "media"; :}
+| RMEDIANA {: RESULT = "mediana"; :}
+| RMODA {: RESULT = "moda"; :}
+ | RVARIANZA {: RESULT = "varianza"; :}
+| RMAX  {: RESULT = "max"; :}
+| RMIN {: RESULT = "min"; :}
 ;
 
-declaracionvar ::= RVAR DOSP tipod CUATROP ID MENORQUE expresion REND PYC 
+declaracionvar ::= RVAR DOSP tipod:tip CUATROP ID:variable MENORQUE expresion:e REND PYC 
+   {:hashMap.put(variable.toString(),new sim(e.toString(),tip.toString(),null));
+Instruccion.imprimirHashMap(hashMap);
+:} 
 ;
 
-imprimira ::= RCONSOLE CUATROP RCOLUMN IGUAL expresioncadena MAYORQUE arreglo REND PYC
+imprimira ::= RCONSOLE CUATROP RCOLUMN IGUAL expresioncadena:titulo MAYORQUE arreglo:ex REND PYC
+    {:
+    ArrayList<String> nuevo = (ArrayList<String>) ex;
+    StringBuilder builder = new StringBuilder();
+           
+    // Recorre los elementos del arreglo y los concatena separados por comas
+    for (String elemento : nuevo) {
+        if (builder.length() > 0) {
+            builder.append("\n"); // Agrega un salto de línea después del primer elemento
+        }
+        builder.append(elemento);
+    }
+
+    // Agrega la línea con el título y el contenido del arreglo
+    cosaspublicas.Consola += "\n--------------\n" + titulo + "\n--------------\n" + builder.toString() + "\n";
+    
+:} 
+
 ;
 
-imprimire ::= RCONSOLE CUATROP RPRINT IGUAL listaexp REND PYC
-{: :};
+imprimire ::= RCONSOLE CUATROP RPRINT IGUAL listaexp:exp REND PYC
+{:
+        cosaspublicas.Consola += "\n";
+        ArrayList<String> nuevo = (ArrayList<String>) exp; 
+            StringBuilder builder = new StringBuilder();
+           
+          // Recorre los elementos del arreglo y los concatena separados por comas
+          for (String elemento : nuevo) {
+              if (builder.length() > 0) {
+                  builder.append(", ");
+              }
+              builder.append(elemento);
+          }
 
-tipod ::= RCHAR|RDOUBLE
+          cosaspublicas.Consola += builder.toString() + ",";
+      
+ :};
+
+tipod ::= RCHAR {: RESULT = "char"; :}
+|RDOUBLE {: RESULT = "double"; :}
 ;
 
-expresion ::= funciones
-        | DECIMAL:val {:RESULT = val.toString();:}
-        | CADENA:val  {:RESULT = val.toString();:}      
-        | ID      {::}     
+expresion ::= funciones:tip {: //System.out.println(tip.toString()); 
+RESULT = tip;:}
+        | DECIMAL:dec {: RESULT = dec; //System.out.println(dec.toString()); :}
+        | CADENA:cad {: RESULT = cad; //System.out.println(cad.toString()); :}
+        | ID:id {:
+            if(hashMap.containsKey(id)){
+                sim simbolo = hashMap.get(id);
+                RESULT = simbolo.getSimbolo();
+             }else{
+                RESULT = "Id no declarado";
+            }
+
+:} 
 ;
 
-expresioncadena ::= CADENA | ID
+expresioncadena ::= CADENA:cad
+{:RESULT = cad;:}
+ | ID:id {:
+            if(hashMap.containsKey(id)){
+                sim simbolo = hashMap.get(id);
+                RESULT = simbolo.getSimbolo();
+             }else{
+                RESULT = "Id no declarado";
+            }
+
+:} 
 ;
 
-parametros ::= parametros parametrografica
-|parametrografica
+graficas ::= tipog:graf PARIZQ parametros:par REXEC tipog REND PYC PARDER REND PYC
+{:
+    ArrayList<sim> Esgrafica = (ArrayList<sim>) par;
+    String opcion = (String) graf;
+    switch(opcion){
+               case "bar":
+                        ArrayList<String> ejeX = new ArrayList<>();
+                       ArrayList<Float> ejeY = new ArrayList<>();
+                       String titulo = "";
+                       String tituloX = "";
+                       String tituloY = "";
+
+                       for (sim parametro : Esgrafica) {
+                           if (parametro.getTipo().equals("titulo")) {
+                               titulo = parametro.getSimbolo();
+                           } else if (parametro.getTipo().equals("titulox")) {
+                               tituloX = parametro.getSimbolo();
+                           } else if (parametro.getTipo().equals("tituloy")) {
+                               tituloY = parametro.getSimbolo();
+                           } else if (parametro.getTipo().equals("ejex")) {
+                               ejeX = parametro.getArreglo();
+                           } else if (parametro.getTipo().equals("ejey")) {
+                               // Suponiendo que el arreglo contiene valores flotantes
+                               for (String valor : parametro.getArreglo()) {
+                                   ejeY.add(Float.parseFloat(valor));
+                               }
+                           }
+                       }
+
+               // Llamar a la función de gráficas con los datos obtenidos
+               generar_graficas.graficarBarra(titulo, ejeX, ejeY, tituloX, tituloY);
+
+                  break;
+
+               case "line":
+                       ArrayList<String> ejex = new ArrayList<>();
+                       ArrayList<Float> ejey = new ArrayList<>();
+                       String titulo3 = "";
+                       String titulox = "";
+                       String tituloy = "";
+
+                       for (sim parametro : Esgrafica) {
+                           if (parametro.getTipo().equals("titulo")) {
+                               titulo3 = parametro.getSimbolo();
+                           } else if (parametro.getTipo().equals("titulox")) {
+                               titulox = parametro.getSimbolo();
+                           } else if (parametro.getTipo().equals("tituloy")) {
+                               tituloy = parametro.getSimbolo();
+                           } else if (parametro.getTipo().equals("ejex")) {
+                               ejex = parametro.getArreglo();
+                           } else if (parametro.getTipo().equals("ejey")) {
+                               // Suponiendo que el arreglo contiene valores flotantes
+                               for (String valor : parametro.getArreglo()) {
+                                   ejey.add(Float.parseFloat(valor));
+                               }
+                           }
+                       }
+
+                    // Llamar a la función de gráficas con los datos obtenidos
+                    generar_graficas.graficarLinea(titulo3, titulox, tituloy,ejex, ejey );
+
+                   break;
+               case "pie":
+                     ArrayList<String> labels = new ArrayList<>();
+                       ArrayList<Float> valores = new ArrayList<>();
+                       String titulo1 = "";
+                       
+
+                       for (sim parametro : Esgrafica) {
+                           if (parametro.getTipo().equals("titulo")) {
+                               titulo1 = parametro.getSimbolo();
+                           } else if (parametro.getTipo().equals("label")) {
+                               labels = parametro.getArreglo();
+                           } else if (parametro.getTipo().equals("values")) {
+                               // Suponiendo que el arreglo contiene valores flotantes
+                               for (String valor : parametro.getArreglo()) {
+                                   valores.add(Float.parseFloat(valor));
+                               }
+                           }
+                       }
+
+                    // Llamar a la función de gráficas con los datos obtenidos
+                    generar_graficas.graficarPie(titulo1, valores, labels);
+
+                   break;
+               case "histo":
+                       ArrayList<Float> valores1 = new ArrayList<>();
+                       String titulo2 = "";
+                       
+
+                       for (sim parametro : Esgrafica) {
+                           if (parametro.getTipo().equals("titulo")) {
+                               titulo2 = parametro.getSimbolo();
+                           } else if (parametro.getTipo().equals("values")) {
+                               // Suponiendo que el arreglo contiene valores flotantes
+                               for (String valor : parametro.getArreglo()) {
+                                   valores1.add(Float.parseFloat(valor));
+                               }
+                           }
+                       }
+
+                    // Llamar a la función de gráficas con los datos obtenidos
+                    generar_graficas.graficarHistograma(titulo2, valores1);
+                    cosaspublicas.Consola+=generar_graficas.createFrequencyTable(valores1);
+                   break;
+               default:
+                       RESULT = "Error: Operación no válida";
+           }
+:}
 ;
 
-parametrografica ::= RTITULO CUATROP tipod IGUAL expresioncadena REND PYC
- | RTITULOX CUATROP tipod IGUAL expresioncadena REND PYC
- | RTITULOY CUATROP tipod IGUAL expresioncadena REND PYC
- | REJEX  CUATROP tipod IGUAL arreglo REND PYC
- |RLABEL CUATROP tipod IGUAL arreglo REND PYC
- | REJEY CUATROP tipod IGUAL arreglo REND PYC
- | RVALUES  CUATROP tipod IGUAL arreglo REND PYC
+tipog ::= RBAR  {: RESULT = "bar"; :}
+| RLINE  {: RESULT = "line"; :}
+| RPIE {: RESULT = "pie"; :} 
+|RHISTOGRAM {: RESULT = "histo"; :}
+;
+
+
+parametros ::= parametros parametrografica: prmt
+{:
+    Esgrafica.add((sim)prmt);
+    RESULT = Esgrafica;
+:}
+
+|parametrografica: prmt
+{:
+    Esgrafica = new ArrayList<>();
+    Esgrafica.add((sim)prmt);
+    RESULT = Esgrafica;
+:}
+
+
+;
+
+parametrografica ::= 
+    RTITULO CUATROP tipod IGUAL expresioncadena:cad REND PYC
+ {:
+    sim resultado = new sim((String)cad, "titulo",null);
+    RESULT = resultado;
+
+:}
+ | RTITULOX CUATROP tipod IGUAL expresioncadena:cad1 REND PYC
+{:
+        sim resultado = new sim((String)cad1, "titulox",null);
+         RESULT = resultado;
+
+:}
+ | RTITULOY CUATROP tipod IGUAL expresioncadena:cad2 REND PYC
+{:
+        sim resultado = new sim((String)cad2, "tituloy",null);
+         RESULT = resultado;
+
+:}
+ | REJEX  CUATROP tipod IGUAL arreglo:arr REND PYC
+{:
+    ArrayList<String> nuevo = (ArrayList<String>) arr; 
+    sim resultado = new sim(null, "ejex",nuevo);
+    RESULT = resultado;
+:}
+
+ |RLABEL CUATROP tipod IGUAL arreglo:arr REND PYC 
+{:
+    ArrayList<String> nuevo = (ArrayList<String>) arr; 
+    sim resultado = new sim(null, "label",nuevo);
+    RESULT = resultado;
+:}
+
+ | REJEY CUATROP tipod IGUAL arreglo:arr REND PYC
+{:
+    ArrayList<String> nuevo = (ArrayList<String>) arr; 
+    sim resultado = new sim(null, "ejey",nuevo);
+    RESULT = resultado;
+:}
+ | RVALUES  CUATROP tipod IGUAL arreglo:arr REND PYC
+{:
+    ArrayList<String> nuevo = (ArrayList<String>) arr; 
+    sim resultado = new sim(null, "values",nuevo);
+    RESULT = resultado;
+:}
 |error REND PYC
 ;
-graficas ::= tipog PARIZQ listado PARDER REND PYC
-;
-
-tipog ::= RBAR | RLINE | RPIE |RHISTOGRAM
-;
-
-listado ::= parametros REXEC tipog REND PYC
-;
-

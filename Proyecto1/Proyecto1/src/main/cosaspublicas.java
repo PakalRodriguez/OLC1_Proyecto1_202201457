@@ -11,7 +11,15 @@ import java.util.ArrayList;
  * @author evams
  */
 public class cosaspublicas {
+    
     public static ArrayList<token> tokens = new ArrayList<token>();
     public static ArrayList<token> errores = new ArrayList<token>();
-    
+    public static String Consola = "";
+    public static ArrayList<String>imagePaths = new ArrayList<String>();
+
+    public static String getConsola() {
+        return Consola;
+    //    
+
+    }
 }
